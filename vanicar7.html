@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Parking Booking System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-image: url("car2.jpeg");
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-color: chartreuse;
+        }
+        .container {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 500px;
+        }
+        h1 {
+            text-align: center;
+        }
+        #parking-slots {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .slot {
+            width: 100px;
+            height: 100px;
+            background-color: green;
+            border-radius: 5px;
+            text-align: center;
+            line-height: 100px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .booked {
+            background-color: red !important;
+            cursor: not-allowed;
+        }
+        form {
+            display: none;
+        }
+        input[type="text"],
+        input[type="tel"],
+        input[type="date"],
+        input[type="time"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #qrcode {
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Car Parking Booking System</h1>
+        <div id="parking-slots"></div>
+        <form id="registrationForm">
+            <h2>Vehicle Registration with Payment</h2>
+            <div class="input-group">
+                <label for="ownerName">Owner Name:</label>
+                <input type="text" id="ownerName" name="ownerName" required>
+            </div>
+            <div class="input-group">
+                <label for="vehicleNumber">Vehicle Number:</label>
+                <input type="text" id="vehicleNumber" name="vehicleNumber" required>
+            </div>
+            <div class="input-group">
+                <label for="phoneNumber">Phone Number:</label>
+                <input type="tel" id="phoneNumber" name="phoneNumber" required>
+            </div>
+            <div class="input-group">
+                <label for="entryDate">Entry Date:</label>
+                <input type="date" id="entryDate" name="entryDate" required>
+            </div>
+            <div class="input-group">
+                <label for="entryTime">Entry Time:</label>
+                <input type="time" id="entryTime" name="entryTime" required>
+            </div>
+            <div class="input-group">
+                <label for="exitTime">Exit Time:</label>
+                <input type="time" id="exitTime" name="exitTime" required>
+            </div>
+            <div class="input-group">
+                <label for="paymentMethod">Payment Method:</label>
+                <select id="paymentMethod" name="paymentMethod" required>
+                    <option value="creditCard">Credit Card</option>
+                    <option value="debitCard">Debit Card</option>
+                    <option value="paypal">PayPal</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="cardNumber">Card Number:</label>
+                <input type="text" id="cardNumber" name="cardNumber" required>
+            </div>
+            <div class="input-group">
+                <label for="cvv">CVV:</label>
+                <input type="text" id="cvv" name="cvv" required>
+            </div>
+            <div class="input-group">
+                <label for="expirationDate">Expiration Date:</label>
+                <input type="date" id="expirationDate" name="expirationDate" required>
+            </div>
+            <div class="input-group">
+                <label for="amount">Amount:</label>
+                <input type="number" id="amount" name="amount" min="0" step="0.01" required>
+            </div>
+            <button type="submit">Register & Pay</button>
+        </form>
+        <div id="message"></div>
+        <div id="qrcode"></div>
+    </div>
+    <script>
+        const slotsContainer = document.getElementById('parking-slots');
+        const registrationForm = document.getElementById('registrationForm');
+        const messageDiv = document.getElementById('message');
+        const qrCodeDiv = document.getElementById('qrcode');
+        let selectedSlot = null;
+        let bookedSlotsCount = 0;
+
+        // Create parking slots dynamically
+        for (let i = 1; i <= 20; i++) {
+            const slot = document.createElement('div');
+            slot.classList.add('slot');
+            slot.textContent = `Slot ${i}`;
+            slot.addEventListener('click', selectSlot);
+            slotsContainer.appendChild(slot);
+        }
+
+        function selectSlot(event) {
+            const clickedSlot = event.target;
+
+            if (clickedSlot.classList.contains('booked')) {
+                alert('Slot is already booked. Please try another one.');
+                return;
+            }
+
+            if (selectedSlot) {
+                selectedSlot.classList.remove('selected');
+            }
+
+            selectedSlot = clickedSlot;
+            selectedSlot.classList.add('selected');
+            registrationForm.style.display = 'block';
+        }
+
+        registrationForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            if (!selectedSlot) {
+                alert('Please select a slot to book.');
+                return;
+            }
+
+            const ownerName = document.getElementById('ownerName').value;
+            const vehicleNumber = document.getElementById('vehicleNumber').value;
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            const entryDate = document.getElementById('entryDate').value;
+            const entryTime = document.getElementById('entryTime').value;
+            const exitTime = document.getElementById('exitTime').value;
+
+            const bookingInfo = `
+                Slot: ${selectedSlot.textContent}
+                Owner Name: ${ownerName}
+                Vehicle Number: ${vehicleNumber}
+                Phone Number: ${phoneNumber}
+                Entry Date: ${entryDate}
+                Entry Time: ${entryTime}
+                Exit Time: ${exitTime}
+            `;
+
+            selectedSlot.classList.add('booked');
+            selectedSlot.classList.remove('selected');
+            selectedSlot.removeEventListener('click', selectSlot);
+            registrationForm.style.display = 'none';
+            bookedSlotsCount++;
+            selectedSlot = null;
+
+            messageDiv.innerHTML = `<p>Slot booked successfully!<br>
+                                     Owner Name: ${ownerName}<br>
+                                     Entry Date: ${entryDate}<br>
+                                     Entry Time: ${entryTime}<br>
+                                     Exit Time: ${exitTime}<br>
+                                     Total Booked Slots: ${bookedSlotsCount}</p>`;
+            alert('Slot booked successfully!');
+            registrationForm.reset();
+
+            // Generate QR code with booking information
+            qrCodeDiv.innerHTML = "";
+            new QRCode(qrCodeDiv, {
+                text: bookingInfo,
+                width: 128,
+                height: 128
+            });
+        });
+    </script>
+</body>
+</html>
